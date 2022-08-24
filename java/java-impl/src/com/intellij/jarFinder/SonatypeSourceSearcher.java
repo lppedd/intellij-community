@@ -1,7 +1,6 @@
 // Copyright 2000-2018 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license that can be found in the LICENSE file.
 package com.intellij.jarFinder;
 
-import com.intellij.ide.IdeBundle;
 import com.intellij.ide.IdeCoreBundle;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProgressIndicator;
@@ -13,7 +12,13 @@ import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.util.List;
 
-public class SonatypeSourceSearcher extends SourceSearcher {
+import static com.intellij.jarFinder.MavenSourceSearcherUtils.findElements;
+import static com.intellij.jarFinder.MavenSourceSearcherUtils.readElementCancelable;
+
+/**
+ * @author Sergey Evdokimov
+ */
+public class SonatypeSourceSearcher implements SourceSearcher {
   private static final Logger LOG = Logger.getInstance(SonatypeSourceSearcher.class);
 
   @Nullable
@@ -30,7 +35,7 @@ public class SonatypeSourceSearcher extends SourceSearcher {
       indicator.checkCanceled();
 
       String url = "https://oss.sonatype.org/service/local/lucene/search?collapseresults=true&c=sources&a=" + artifactId + "&v=" + version;
-      String groupId = findMavenGroupId(classesJar, artifactId);
+      String groupId = MavenSourceSearcherUtils.findMavenGroupId(classesJar, artifactId);
       if(groupId != null) {
         url += ("&g=" + groupId);
       }
