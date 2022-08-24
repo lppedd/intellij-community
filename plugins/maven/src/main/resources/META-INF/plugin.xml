@@ -54,6 +54,14 @@
                     dynamic="true"/>
     <extensionPoint name="versionAwareMavenSupport" interface="org.jetbrains.idea.maven.MavenVersionAwareSupportExtension" dynamic="true"/>
 
+    <!-- BEGIN Eclipse Tycho - to be extracted to plugin -->
+    <extensionPoint
+      name="resolverCustomizer"
+      interface="org.jetbrains.idea.maven.project.MavenResolverCustomizer"
+      area="IDEA_PROJECT"
+      dynamic="true"
+    />
+    <!-- END Eclipse Tycho -->
   </extensionPoints>
 
   <depends>com.intellij.properties</depends>
@@ -66,6 +74,15 @@
   <depends optional="true" config-file="maven-performance-plugin-support.xml">com.jetbrains.performancePlugin</depends>
 
   <extensions defaultExtensionNs="com.intellij">
+    <!-- BEGIN Eclipse Tycho - to be extracted to plugin -->
+    <projectService serviceImplementation="org.jetbrains.idea.maven.project.EclipseTychoSettings" />
+    <projectConfigurable
+      parentId="MavenSettings"
+      id="com.lppedd.idea.tycho.EclipseTychoSettingsConfigurable"
+      instance="org.jetbrains.idea.maven.utils.EclipseTychoSettingsConfigurable"
+    />
+    <!-- END Eclipse Tycho -->
+
     <pathMacroContributor implementation="org.jetbrains.idea.maven.utils.MavenPathMacroContributor"/>
     <customJavadocTagProvider implementation="org.jetbrains.idea.maven.javadoc.MojoClassAnnotationTagProvider"/>
     <fileType name="MavenConfig" implementationClass="org.jetbrains.idea.maven.config.MavenConfigFileType"
@@ -389,6 +406,11 @@
   </extensions>
 
   <extensions defaultExtensionNs="org.jetbrains.idea.maven">
+    <!-- BEGIN Eclipse Tycho - to be extracted to plugin -->
+    <importer implementation="org.jetbrains.idea.maven.project.EclipseTychoMavenImporter"/>
+    <resolverCustomizer implementation="org.jetbrains.idea.maven.project.EclipseTychoResolverCustomizer"/>
+    <!-- END Eclipse Tycho -->
+
     <pluginDescriptor mavenId="org.apache.maven.plugins:maven-surefire-plugin">
       <param name="additionalClasspathElements/additionalClasspathElement"
              refProvider="org.jetbrains.idea.maven.plugins.api.common.MavenCommonParamReferenceProviders$DirPath"/>
