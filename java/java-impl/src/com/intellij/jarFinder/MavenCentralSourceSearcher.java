@@ -1,7 +1,6 @@
 // Copyright 2000-2018 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license that can be found in the LICENSE file.
 package com.intellij.jarFinder;
 
-import com.intellij.ide.IdeBundle;
 import com.intellij.ide.IdeCoreBundle;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProgressIndicator;
@@ -13,12 +12,18 @@ import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.util.List;
 
-public class MavenCentralSourceSearcher extends SourceSearcher {
+import static com.intellij.jarFinder.MavenSourceSearcherUtils.findElements;
+import static com.intellij.jarFinder.MavenSourceSearcherUtils.readElementCancelable;
+
+/**
+ * @author Sergey Evdokimov
+ */
+public class MavenCentralSourceSearcher implements SourceSearcher {
   private static final Logger LOG = Logger.getInstance(MavenCentralSourceSearcher.class);
 
   @Nullable
   @Override
-  protected String findSourceJar(@NotNull ProgressIndicator indicator,
+  public String findSourceJar(@NotNull ProgressIndicator indicator,
                                  @NotNull String artifactId,
                                  @NotNull String version,
                                  @NotNull VirtualFile classesJar) throws SourceSearchException {
@@ -28,7 +33,7 @@ public class MavenCentralSourceSearcher extends SourceSearcher {
       indicator.checkCanceled();
 
       String url = "https://search.maven.org/solrsearch/select?rows=3&wt=xml&q=";
-      final String groupId = findMavenGroupId(classesJar, artifactId);
+      final String groupId = MavenSourceSearcherUtils.findMavenGroupId(classesJar, artifactId);
       if (groupId != null) {
         url += "g:%22" + groupId + "%22%20AND%20";
       }

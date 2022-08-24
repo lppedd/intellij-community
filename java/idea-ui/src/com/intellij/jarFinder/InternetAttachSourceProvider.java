@@ -94,7 +94,14 @@ public final class InternetAttachSourceProvider extends AbstractAttachSourceProv
 
         @Override
         public @NotNull ActionCallback perform(@NotNull List<? extends LibraryOrderEntry> orderEntriesContainingFile) {
-          attachSourceJar(sourceFile, libraries);
+          final var srcFile = LocalFileSystem.getInstance().refreshAndFindFileByIoFile(sourceFile);
+          final var jarRoot = JarFileSystem.getInstance().getJarRootForLocalFile(srcFile);
+          final var library = orderEntriesContainingFile.get(0);
+
+          if (library != null) {
+            WriteAction.run(() -> addSourceFile(jarRoot, library.getLibrary()));
+          }
+
           return ActionCallback.DONE;
         }
       });
@@ -118,8 +125,7 @@ public final class InternetAttachSourceProvider extends AbstractAttachSourceProv
           public void run(@NotNull final ProgressIndicator indicator) {
             String artifactUrl = null;
 
-            SourceSearcher[] searchers = {new MavenCentralSourceSearcher(), new SonatypeSourceSearcher()};
-            for (SourceSearcher searcher : searchers) {
+            for (SourceSearcher searcher : SourceSearcher.EP_NAME.getExtensionList()) {
               try {
                 artifactUrl = searcher.findSourceJar(indicator, artifactId, version, jar);
               }

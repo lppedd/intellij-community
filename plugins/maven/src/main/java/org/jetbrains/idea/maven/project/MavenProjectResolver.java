@@ -61,21 +61,28 @@ public class MavenProjectResolver {
                       @NotNull MavenConsole console,
                       @NotNull ResolveContext context,
                       @NotNull MavenProgressIndicator process) throws MavenProcessCanceledException {
-    MultiMap<Path, MavenProject> projectMultiMap = groupByBasedir(mavenProjects);
+    Collection<MavenProject> customizedProjects = mavenProjects;
+
+    for (final var customizer : MavenResolverCustomizer.EP_NAME.getExtensions(project)) {
+      if (customizer.isEnabled()) {
+        customizedProjects = customizer.customizeProjects(customizedProjects, process);
+      }
+    }
+
+    MultiMap<Path, MavenProject> projectMultiMap = groupByBasedir(customizedProjects);
 
     for (Map.Entry<Path, Collection<MavenProject>> entry : projectMultiMap.entrySet()) {
       String baseDir = entry.getKey().toString();
       MavenEmbedderWrapper embedder = embeddersManager.getEmbedder(MavenEmbeddersManager.FOR_DEPENDENCIES_RESOLVE, baseDir, baseDir);
       try {
         Properties userProperties = new Properties();
-        for (MavenProject mavenProject : mavenProjects) {
+        for (MavenProject mavenProject : customizedProjects) {
           mavenProject.setConfigFileError(null);
           for (MavenImporter mavenImporter : MavenImporter.getSuitableImporters(mavenProject)) {
             mavenImporter.customizeUserProperties(project, mavenProject, userProperties);
           }
         }
-        boolean updateSnapshots = MavenProjectsManager.getInstance(project).getForceUpdateSnapshots();
-        updateSnapshots = updateSnapshots ? updateSnapshots : generalSettings.isAlwaysUpdateSnapshots();
+        boolean updateSnapshots = generalSettings.isAlwaysUpdateSnapshots() || MavenProjectsManager.getInstance(project).getForceUpdateSnapshots();
         embedder.customizeForResolve(myTree.getWorkspaceMap(), console, process, updateSnapshots, userProperties);
         doResolve(project, entry.getValue(), generalSettings, embedder, context, process);
       }
@@ -93,7 +100,7 @@ public class MavenProjectResolver {
         embeddersManager.release(embedder);
       }
 
-      MavenUtil.restartConfigHighlightning(project, mavenProjects);
+      MavenUtil.restartConfigHighlightning(project, customizedProjects);
     }
   }
 
