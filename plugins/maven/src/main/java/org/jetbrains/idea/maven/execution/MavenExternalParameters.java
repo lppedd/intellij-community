@@ -421,6 +421,17 @@ public final class MavenExternalParameters {
       parametersList.add(parameters.getPomFileName());
     }
 
+    final Set<String> projectsList = parameters.getProjectsList();
+
+    if (!projectsList.isEmpty()) {
+      parametersList.add("-pl");
+      parametersList.add(String.join(",", projectsList));
+    }
+
+    if (parameters.isAlsoMake()) {
+      parametersList.add("-am");
+    }
+
     addOption(parametersList, "P", encodeProfiles(parameters.getProfilesMap()));
   }
 

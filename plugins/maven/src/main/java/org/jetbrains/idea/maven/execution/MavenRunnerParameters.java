@@ -20,7 +20,8 @@ public final class MavenRunnerParameters implements Cloneable {
   private String myWorkingDirPath;
   private String myPomFileName;
   private final List<String> myGoals = new ArrayList<>();
-
+  private final Set<String> myProjectsSet = new HashSet<>(8);
+  private boolean myAlsoMake;
   private boolean myResolveToWorkspace;
 
   private final Map<String, Boolean> myProfilesMap = new LinkedHashMap<>();
@@ -171,6 +172,31 @@ public final class MavenRunnerParameters implements Cloneable {
     if (goals != null) {
       myGoals.addAll(goals);
     }
+  }
+
+  public Set<String> getProjectsList() {
+    return myProjectsSet;
+  }
+
+  public void setProjectsList(@Nullable final Set<String> projectsList) {
+    // Called from XML Serializer
+    if (myProjectsSet == projectsList) {
+      return;
+    }
+
+    myProjectsSet.clear();
+
+    if (projectsList != null) {
+      myProjectsSet.addAll(projectsList);
+    }
+  }
+
+  public boolean isAlsoMake() {
+    return myAlsoMake;
+  }
+
+  public void setAlsoMake(final boolean isAlsoMake) {
+    myAlsoMake = isAlsoMake;
   }
 
   /**

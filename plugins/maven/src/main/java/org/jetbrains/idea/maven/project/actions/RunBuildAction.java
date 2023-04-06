@@ -15,20 +15,33 @@
  */
 package org.jetbrains.idea.maven.project.actions;
 
+import com.intellij.execution.ExecutionException;
+import com.intellij.execution.Executor;
+import com.intellij.execution.RunnerAndConfigurationSettings;
+import com.intellij.execution.executors.DefaultRunExecutor;
+import com.intellij.execution.impl.DefaultJavaProgramRunner;
+import com.intellij.execution.runners.ExecutionEnvironment;
+import com.intellij.execution.runners.ProgramRunner;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.DataContext;
+import com.intellij.openapi.externalSystem.util.ExternalSystemUtil;
 import com.intellij.openapi.project.Project;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.idea.maven.execution.MavenRunConfigurationType;
 import org.jetbrains.idea.maven.execution.MavenRunnerParameters;
+import org.jetbrains.idea.maven.execution.RunnerBundle;
 import org.jetbrains.idea.maven.model.MavenExplicitProfiles;
+import org.jetbrains.idea.maven.model.MavenId;
+import org.jetbrains.idea.maven.project.EclipseTychoSettings;
 import org.jetbrains.idea.maven.project.MavenProject;
 import org.jetbrains.idea.maven.project.MavenProjectsManager;
 import org.jetbrains.idea.maven.utils.MavenDataKeys;
+import org.jetbrains.idea.maven.utils.MavenUtil;
 import org.jetbrains.idea.maven.utils.actions.MavenAction;
 import org.jetbrains.idea.maven.utils.actions.MavenActionUtil;
 
 import java.util.List;
+import java.util.Set;
 
 public class RunBuildAction extends MavenAction {
   @Override
@@ -54,15 +67,56 @@ public class RunBuildAction extends MavenAction {
 
     final MavenProjectsManager projectsManager = MavenActionUtil.getProjectsManager(context);
     if (projectsManager == null) return false;
-    MavenExplicitProfiles explicitProfiles = projectsManager.getExplicitProfiles();
-    final MavenRunnerParameters params = new MavenRunnerParameters(true,
-                                                                   mavenProject.getDirectory(),
-                                                                   mavenProject.getFile().getName(),
-                                                                   goals,
-                                                                   explicitProfiles.getEnabledProfiles(),
-                                                                   explicitProfiles.getDisabledProfiles());
 
-    MavenRunConfigurationType.runConfiguration(project, params, null);
+    // noinspection deprecation
+    if (!ExternalSystemUtil.confirmLoadingUntrustedProject(project, MavenUtil.SYSTEM_ID)) {
+      MavenUtil.showError(
+        project,
+        RunnerBundle.message("notification.title.failed.to.execute.maven.goal"),
+        RunnerBundle.message("notification.project.is.untrusted")
+      );
+
+      return true;
+    }
+
+    final MavenExplicitProfiles explicitProfiles = projectsManager.getExplicitProfiles();
+    final MavenRunnerParameters params = new MavenRunnerParameters(
+      true,
+      mavenProject.getDirectory(),
+      mavenProject.getFile().getName(),
+      goals,
+      explicitProfiles.getEnabledProfiles(),
+      explicitProfiles.getDisabledProfiles()
+    );
+
+    final String name = MavenRunConfigurationType.generateName(project, params);
+
+    if (EclipseTychoSettings.getInstance(project).isSupportEnabled()) {
+      final MavenProject rootProject = projectsManager.getProjectsTree().findRootProject(mavenProject);
+
+      if (!mavenProject.equals(rootProject)) {
+        params.setWorkingDirPath(rootProject.getDirectory());
+        params.setPomFileName(rootProject.getFile().getName());
+
+        final MavenId id = mavenProject.getMavenId();
+        params.setProjectsList(Set.of(id.getGroupId() + ":" + id.getArtifactId()));
+        params.setAlsoMake(true);
+      }
+    }
+
+    final RunnerAndConfigurationSettings settings =
+      MavenRunConfigurationType.createRunnerAndConfigurationSettings(null, null, params, project, name, false);
+    final Executor executor = DefaultRunExecutor.getRunExecutorInstance();
+    final ProgramRunner<?> runner = DefaultJavaProgramRunner.getInstance();
+    final ExecutionEnvironment environment = new ExecutionEnvironment(executor, runner, settings, project);
+
+    try {
+      runner.execute(environment);
+    }
+    catch (final ExecutionException e) {
+      MavenUtil.showError(project, RunnerBundle.message("notification.title.failed.to.execute.maven.goal"), e);
+    }
+
     return true;
   }
 }

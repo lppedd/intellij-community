@@ -3,6 +3,7 @@ package org.jetbrains.idea.maven.project;
 
 import com.intellij.openapi.components.PersistentStateComponent;
 import com.intellij.openapi.components.State;
+import com.intellij.openapi.project.Project;
 import com.intellij.util.xmlb.XmlSerializerUtil;
 import org.jetbrains.annotations.NotNull;
 
@@ -12,6 +13,11 @@ import org.jetbrains.annotations.NotNull;
 @State(name = "EclipseTycho")
 public class EclipseTychoSettings implements PersistentStateComponent<EclipseTychoSettings> {
   private boolean isSupportEnabled;
+
+  @NotNull
+  public static EclipseTychoSettings getInstance(@NotNull final Project project) {
+    return project.getService(EclipseTychoSettings.class);
+  }
 
   /**
    * Returns {@code true} if Eclipse Tycho support is enabled
